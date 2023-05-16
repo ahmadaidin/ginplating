@@ -1,0 +1,38 @@
+name: Test
+
+on:
+  push:
+    branches: ["main"]
+
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    name: Test
+    container: mongo:6
+    services:
+      mongodb:
+        image: mongo
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4.0.1
+        with:
+          go-version-file: ./go.mod
+          cache-dependency-path: ./go.sum
+
+      - name: Build
+        run: go build -o main main.go
+
+      - name: Test
+        run: go test -v ./...
+        env:
+          # The hostname used to communicate with the service container
+          MONGODB_HOST: mongodb
+          # The default mongo port
+          MONGODB_PORT: 27017
