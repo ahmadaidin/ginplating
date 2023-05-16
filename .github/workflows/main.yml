@@ -3,14 +3,31 @@ name: Docker
 on: [push]
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
-    name: A job to say hello
-    steps:
-      - uses: actions/checkout@v3
+    name: Test
+    container: mongo:6
+    services:
+      mongodb:
+        image: mongo
 
-      - name: Hello world action step
-        id: hello
-        uses: ahmadaidin/ginplating/test-action@v1
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4.0.1
         with:
-          name: Aidin
+          go-version-file: ./go.mod
+          cache-dependency-path: ./go.sum
+
+      - name: Build
+        run: go build -o main main.go
+
+      - name: Test
+        run: go test -v ./...
+        env:
+          # The hostname used to communicate with the service container
+          MONGODB_HOST: mongodb
+          # The default mongo port
+          MONGODB_PORT: 27017

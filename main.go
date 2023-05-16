@@ -15,7 +15,7 @@ import (
 )
 
 func main() {
-	mongoDb := database.NewMongoDatabase("mongodb://localhost:27017/dbname", 10)
+	mongoDb := database.NewMongoDatabase("mongodb://mongodb:27017/ginplating", 10)
 
 	bookRepo := repository.NewBookRepository(mongoDb)
 
