@@ -1,0 +1,5 @@
+name: "docker"
+description: "test docker action"
+runs:
+  using: "docker"
+  image: "docker"
