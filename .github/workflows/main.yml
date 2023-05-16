@@ -11,6 +11,6 @@ jobs:
 
       - name: Hello world action step
         id: hello
-        uses: ahmadaidin/ginplating/action@v1
+        uses: ahmadaidin/ginplating/test-action@v1
         with:
           name: Aidin
