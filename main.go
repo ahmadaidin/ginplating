@@ -2,33 +2,52 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os/signal"
 	"syscall"
 	"time"
 
+	"github.com/ahmadaidin/ginplating/config"
 	"github.com/ahmadaidin/ginplating/controller/httpctrl"
 	"github.com/ahmadaidin/ginplating/controller/httpctrl/bookctrl"
 	"github.com/ahmadaidin/ginplating/domain/repository"
 	"github.com/ahmadaidin/ginplating/infrastructure/database"
+	"github.com/fsnotify/fsnotify"
+	"github.com/spf13/viper"
 )
 
 func main() {
-	mongoDb := database.NewMongoDatabase("mongodb://mongodb:27017/ginplating", 10)
+	configLoader := config.GetLoader()
+	cfg := configLoader.Config()
+
+	mongoDb := database.NewMongoDatabase(cfg.DatabaseURI, 10)
 
 	bookRepo := repository.NewBookRepository(mongoDb)
-
-	httpHandler := httpctrl.NewGinHttpHandler(
-		*bookctrl.NewBookController(
-			*bookRepo,
-		),
+	bookCtrl := bookctrl.NewBookController(
+		&configLoader,
+		bookRepo,
 	)
+	httpHandler := httpctrl.NewGinHttpHandler(*bookCtrl)
 
 	srv := &http.Server{
-		Addr:    ":8000",
+		Addr:    fmt.Sprintf(":%s", cfg.Port),
 		Handler: httpHandler.Engine,
 	}
+
+	viper.OnConfigChange(func(e fsnotify.Event) {
+		if err := configLoader.Refresh(); err != nil {
+			log.Println("error when refreshing config", err)
+		}
+		fmt.Println("Config file changed:", e.Name)
+		newCfg := configLoader.Config()
+		if newCfg.DatabaseURI != cfg.DatabaseURI {
+			log.Printf("change database uri from %s to %s\n", cfg.DatabaseURI, newCfg.DatabaseURI)
+			log.Println("reconnect to new database")
+			mongoDb.NewClient(newCfg.DatabaseURI, 10)
+		}
+	})
 
 	// Create context that listens for the interrupt signal from the OS.
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)

@@ -5,9 +5,9 @@ import (
 
 	"github.com/ahmadaidin/ginplating/domain/dto"
 	"github.com/ahmadaidin/ginplating/domain/entity"
+	"github.com/ahmadaidin/ginplating/infrastructure/database"
 	"github.com/ahmadaidin/ginplating/pkg/errors"
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 const (
@@ -15,12 +15,12 @@ const (
 )
 
 type BookRepository struct {
-	db         *mongo.Database
+	db         *database.MongoDatabase
 	collection string
 }
 
-func NewBookRepository(db *mongo.Database) *BookRepository {
-	return &BookRepository{
+func NewBookRepository(db *database.MongoDatabase) BookRepository {
+	return BookRepository{
 		db:         db,
 		collection: bookCollection,
 	}
@@ -29,7 +29,7 @@ func NewBookRepository(db *mongo.Database) *BookRepository {
 func (r *BookRepository) FindAll(ctx context.Context, options ...dto.FindAllBookOptions) (books []entity.Book, total int64, err errors.Error) {
 	option := dto.MergeFindAllBookOptions(options...)
 
-	cursor, ierr := r.db.Collection(r.collection).Find(ctx, findAllBookOptionToFindAllFilter(option))
+	cursor, ierr := r.db.Driver().Collection(r.collection).Find(ctx, findAllBookOptionToFindAllFilter(option))
 	if ierr != nil {
 		return books, total, errors.NewInternalError(ierr, "error in BookRepository.FindAll when calling db.Collection.Find")
 	}
@@ -38,7 +38,7 @@ func (r *BookRepository) FindAll(ctx context.Context, options ...dto.FindAllBook
 		return books, total, errors.NewInternalError(ierr, "error in BookRepository.FindAll when calling cursor.All")
 	}
 
-	total, ierr = r.db.Collection(r.collection).CountDocuments(ctx, findAllBookOptionToFindAllFilter(option))
+	total, ierr = r.db.Driver().Collection(r.collection).CountDocuments(ctx, findAllBookOptionToFindAllFilter(option))
 	if ierr != nil {
 		return books, total, errors.NewInternalError(ierr, "error in BookRepository.FindAll when calling db.Collection.CountDocuments")
 	}
