@@ -1,20 +1,24 @@
 package bookctrl
 
 import (
+	"github.com/ahmadaidin/ginplating/config"
 	"github.com/ahmadaidin/ginplating/domain/dto"
 	"github.com/ahmadaidin/ginplating/domain/repository"
 	"github.com/gin-gonic/gin"
 )
 
 type BookController struct {
-	bookRepo repository.BookRepository
+	cfgLoader *config.Loader
+	bookRepo  repository.BookRepository
 }
 
 func NewBookController(
+	cfgLoader *config.Loader,
 	bookRepo repository.BookRepository,
 ) *BookController {
 	return &BookController{
-		bookRepo: bookRepo,
+		cfgLoader: cfgLoader,
+		bookRepo:  bookRepo,
 	}
 }
 
@@ -30,11 +34,11 @@ func (ctr *BookController) FindAll(c *gin.Context) {
 	opt := dto.FindAllBookOptions{}
 
 	c.BindQuery(&opt)
-	books, _, err := ctr.bookRepo.FindAll(ctx, opt)
+	_, _, err := ctr.bookRepo.FindAll(ctx, opt)
 	if err.Valid() {
 		err.PrependMsg("error in BookController.FindAll when calling ctr.bookRepo.FindAll")
 		c.AbortWithError(err.HttpStatus(), err.Err())
 	}
-
-	c.JSON(200, books)
+	cfg := ctr.cfgLoader.Config()
+	c.JSON(200, cfg)
 }
