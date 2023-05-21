@@ -14,12 +14,14 @@ import (
 	"github.com/ahmadaidin/ginplating/controller/httpctrl/bookctrl"
 	"github.com/ahmadaidin/ginplating/domain/repository"
 	"github.com/ahmadaidin/ginplating/infrastructure/database"
-	"github.com/fsnotify/fsnotify"
-	"github.com/spf13/viper"
 )
 
 func main() {
-	configLoader := config.GetLoader()
+	configLoader, err := config.NewLoaderAndLoad()
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	cfg := configLoader.Config()
 
 	mongoDb := database.NewMongoDatabase(cfg.DatabaseURI, 10)
@@ -36,17 +38,13 @@ func main() {
 		Handler: httpHandler.Engine,
 	}
 
-	viper.OnConfigChange(func(e fsnotify.Event) {
-		if err := configLoader.Refresh(); err != nil {
-			log.Println("error when refreshing config", err)
-		}
-		fmt.Println("Config file changed:", e.Name)
-		newCfg := configLoader.Config()
-		if newCfg.DatabaseURI != cfg.DatabaseURI {
-			log.Printf("change database uri from %s to %s\n", cfg.DatabaseURI, newCfg.DatabaseURI)
-			log.Println("reconnect to new database")
-			mongoDb.NewClient(newCfg.DatabaseURI, 10)
-		}
+	configLoader.OnDatabaseURIChange(func(oldURI string, newURI string) {
+		log.Println("calling mongodb.NewClient with new URI")
+		mongoDb.NewClient(newURI, 10)
+	})
+
+	configLoader.OnPortChange(func(oldPort string, newPort string) {
+		log.Printf("port changed from %s to %s. doing nothing to the server\n", oldPort, newPort)
 	})
 
 	// Create context that listens for the interrupt signal from the OS.

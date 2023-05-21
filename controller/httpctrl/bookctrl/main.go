@@ -8,12 +8,12 @@ import (
 )
 
 type BookController struct {
-	cfgLoader *config.ConfigLoader
+	cfgLoader *config.Loader
 	bookRepo  repository.BookRepository
 }
 
 func NewBookController(
-	cfgLoader *config.ConfigLoader,
+	cfgLoader *config.Loader,
 	bookRepo repository.BookRepository,
 ) *BookController {
 	return &BookController{
